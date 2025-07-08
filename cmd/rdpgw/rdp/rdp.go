@@ -146,7 +146,8 @@ func (rb *Builder) String() string {
 func addStructToString(st interface{}, metadata mapstructure.Metadata, sb *strings.Builder) {
 	s := structs.New(st)
 	for _, f := range s.Fields() {
-		if isZero(f) && !isSet(f, metadata) {
+		// Always include ForceHiDpiOptimizations even if it's the default value
+		if f.Name() != "ForceHiDpiOptimizations" && isZero(f) && !isSet(f, metadata) {
 			continue
 		}
 		sb.WriteString(f.Tag("rdp"))
