@@ -21,9 +21,11 @@ RUN mkdir -p /opt/rdpgw && cd /opt/rdpgw && \
 ARG CACHEBUST
 RUN git clone https://github.com/Threebents/rdpgw.git /app
 
-# change to app directory and download dependencies
+# change to app directory and check go.mod
 WORKDIR /app
-RUN go mod download
+RUN cat go.mod
+RUN go version
+RUN go mod download -x
 
 # build rdpgw (without CGO)
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw
