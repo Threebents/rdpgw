@@ -44,7 +44,7 @@ jobs:
 
       - name: Build and push all platforms Docker image
         id: build-and-push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v3
         with:
           context: ./dev/docker
           file: ./dev/docker/Dockerfile
