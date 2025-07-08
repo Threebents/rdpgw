@@ -2,3 +2,6 @@ go.sum
 bin
 *.swp
 .DS_Store
+shared/
+.vscode/
+*.yaml
