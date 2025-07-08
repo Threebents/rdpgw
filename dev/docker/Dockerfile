@@ -1,8 +1,12 @@
 # builder stage
 FROM golang:1.22-alpine as builder
 
-#RUN apt-get update && apt-get install -y libpam-dev
-RUN apk --no-cache add git gcc musl-dev linux-pam-dev openssl
+# install dependencies including git and CA certificates
+RUN apk --no-cache add git gcc musl-dev linux-pam-dev openssl ca-certificates
+
+# set Go proxy and sumdb environment variables
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
 
 # add user
 RUN adduser --disabled-password --gecos "" --home /opt/rdpgw --uid 1001 rdpgw
@@ -21,11 +25,14 @@ RUN mkdir -p /opt/rdpgw && cd /opt/rdpgw && \
 ARG CACHEBUST
 RUN git clone https://github.com/Threebents/rdpgw.git /app
 
-# change to app directory and check go.mod
+# change to app directory and check environment
 WORKDIR /app
-RUN cat go.mod
+RUN ls -la
+RUN cat go.mod || echo "go.mod not found"
 RUN go version
-RUN go mod download -x
+RUN go env GOPROXY
+RUN go env GOSUMDB
+RUN go mod download -x || (echo "Download failed, trying with different settings" && go env -w GOPROXY=direct && go mod download -x)
 
 # build rdpgw (without CGO)
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw
