@@ -90,6 +90,7 @@ type RdpSettings struct {
 	RemoteApplicationMode                 bool   `rdp:"remoteapplicationmode" default:"false"`
 	RemoteApplicationName                 string `rdp:"remoteapplicationname"`
 	RemoteApplicationProgram              string `rdp:"remoteapplicationprogram"`
+	ForceHiDpiOptimizations               int    `rdp:"forcehidpioptimizations" default:"1"`
 }
 
 type Builder struct {

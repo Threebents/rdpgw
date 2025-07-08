@@ -212,8 +212,10 @@ func (h *Handler) HandleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !h.rdpOpts.NoUsername {
-		d.Settings.Username = render
-		if domain != "" {
+		if d.Settings.Username == "" {
+			d.Settings.Username = render
+		}
+		if domain != "" && d.Settings.Domain == "" {
 			d.Settings.Domain = domain
 		}
 	}
