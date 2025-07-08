@@ -1,7 +1,7 @@
 # builder stage
 FROM golang:1.24-alpine as builder
 
-#RUN apt-get update && apt-get install -y libpam-dev
+RUN apk update && apk upgrade --no-cache
 RUN apk --no-cache add git gcc musl-dev linux-pam-dev openssl
 
 # add user
@@ -27,6 +27,7 @@ RUN chmod +x /opt/rdpgw/rdpgw && chmod +x /opt/rdpgw/rdpgw-auth && chmod u+s /op
 
 FROM alpine:latest
 
+RUN apk update && apk upgrade --no-cache
 RUN apk --no-cache add linux-pam musl
 
 # make tempdir in case filestore is used
