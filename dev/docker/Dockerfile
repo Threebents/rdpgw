@@ -17,14 +17,22 @@ RUN mkdir -p /opt/rdpgw && cd /opt/rdpgw && \
     -subj "/C=US/ST=VA/L=SomeCity/O=MyCompany/OU=MyDivision/CN=rdpgw" && \
     openssl x509 -req -days 365 -in server.csr -signkey key.pem -out server.pem
 
-# build rdpgw and set rights
+# clone repository
 ARG CACHEBUST
-RUN git clone https://github.com/Threebents/rdpgw.git /app && \
-    cd /app && \
-    go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw && \
-    CGO_ENABLED=1 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw-auth' ./cmd/auth && \
-    chmod +x /opt/rdpgw/rdpgw && \
+RUN git clone https://github.com/Threebents/rdpgw.git /app
+
+# change to app directory and download dependencies
+WORKDIR /app
+RUN go mod download
+
+# build rdpgw (without CGO)
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw
+
+# build rdpgw-auth (with CGO)
+RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw-auth' ./cmd/auth
+
+# set permissions
+RUN chmod +x /opt/rdpgw/rdpgw && \
     chmod +x /opt/rdpgw/rdpgw-auth && \
     chmod u+s /opt/rdpgw/rdpgw-auth
 
