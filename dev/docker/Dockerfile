@@ -1,7 +1,7 @@
 # builder stage
 FROM golang:1.24-alpine as builder
 
-RUN apk update && apk upgrade --no-cache
+#RUN apt-get update && apt-get install -y libpam-dev
 RUN apk --no-cache add git gcc musl-dev linux-pam-dev openssl
 
 # add user
@@ -19,11 +19,14 @@ RUN mkdir -p /opt/rdpgw && cd /opt/rdpgw && \
 
 # build rdpgw and set rights
 ARG CACHEBUST
-RUN git clone https://github.com/Threebents/rdpgw.git /app
-RUN cd /app && go mod tidy
-RUN cd /app && CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw
-RUN cd /app && CGO_ENABLED=1 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw-auth' ./cmd/auth
-RUN chmod +x /opt/rdpgw/rdpgw && chmod +x /opt/rdpgw/rdpgw-auth && chmod u+s /opt/rdpgw/rdpgw-auth
+RUN git clone https://github.com/Threebents/rdpgw.git /app && \
+    cd /app && \
+    go mod tidy -compat=1.19 && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw' ./cmd/rdpgw && \
+    CGO_ENABLED=1 GOOS=linux go build -trimpath -tags '' -ldflags '' -o '/opt/rdpgw/rdpgw-auth' ./cmd/auth && \
+    chmod +x /opt/rdpgw/rdpgw && \
+    chmod +x /opt/rdpgw/rdpgw-auth && \
+    chmod u+s /opt/rdpgw/rdpgw-auth
 
 FROM alpine:latest
 

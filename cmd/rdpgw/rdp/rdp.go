@@ -90,7 +90,7 @@ type RdpSettings struct {
 	RemoteApplicationMode                 bool   `rdp:"remoteapplicationmode" default:"false"`
 	RemoteApplicationName                 string `rdp:"remoteapplicationname"`
 	RemoteApplicationProgram              string `rdp:"remoteapplicationprogram"`
-	ForceHiDpiOptimizations               int    `rdp:"forcehidpioptimizations" default:"1"`
+	ForceHiDpiOptimizations               int    `rdp:"forcehidpioptimizations" default:"0"`
 }
 
 type Builder struct {
@@ -146,8 +146,7 @@ func (rb *Builder) String() string {
 func addStructToString(st interface{}, metadata mapstructure.Metadata, sb *strings.Builder) {
 	s := structs.New(st)
 	for _, f := range s.Fields() {
-		// Always include ForceHiDpiOptimizations even if it's the default value
-		if f.Name() != "ForceHiDpiOptimizations" && isZero(f) && !isSet(f, metadata) {
+		if isZero(f) && !isSet(f, metadata) {
 			continue
 		}
 		sb.WriteString(f.Tag("rdp"))
