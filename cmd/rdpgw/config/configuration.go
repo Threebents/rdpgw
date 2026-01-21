@@ -1,15 +1,16 @@
 package config
 
 import (
+	"log"
+	"os"
+	"strings"
+
 	"github.com/bolkedebruin/rdpgw/cmd/rdpgw/security"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
-	"log"
-	"os"
-	"strings"
 )
 
 const (
@@ -25,12 +26,14 @@ const (
 	AuthenticationOpenId   = "openid"
 	AuthenticationBasic    = "local"
 	AuthenticationKerberos = "kerberos"
+	AuthenticationHeader   = "header"
 )
 
 type Configuration struct {
 	Server   ServerConfig   `koanf:"server"`
 	OpenId   OpenIDConfig   `koanf:"openid"`
 	Kerberos KerberosConfig `koanf:"kerberos"`
+	Header   HeaderConfig   `koanf:"header"`
 	Caps     RDGCapsConfig  `koanf:"caps"`
 	Security SecurityConfig `koanf:"security"`
 	Client   ClientConfig   `koanf:"client"`
@@ -66,6 +69,13 @@ type OpenIDConfig struct {
 	ClientSecret string `koanf:"clientsecret"`
 }
 
+type HeaderConfig struct {
+	UserHeader      string `koanf:"userheader"`
+	UserIdHeader    string `koanf:"useridheader"`
+	EmailHeader     string `koanf:"emailheader"`
+	DisplayNameHeader string `koanf:"displaynameheader"`
+}
+
 type RDGCapsConfig struct {
 	SmartCardAuth   bool `koanf:"smartcardauth"`
 	TokenAuth       bool `koanf:"tokenauth"`
@@ -96,6 +106,8 @@ type ClientConfig struct {
 	UsernameTemplate string `koanf:"usernametemplate"`
 	SplitUserDomain  bool   `koanf:"splituserdomain"`
 	NoUsername       bool   `koanf:"nousername"`
+	SigningCert      string `koanf:"signingcert"`
+	SigningKey       string `koanf:"signingkey"`
 }
 
 func ToCamel(s string) string {
@@ -180,6 +192,7 @@ func Load(configFile string) Configuration {
 	koanfTag := koanf.UnmarshalConf{Tag: "koanf"}
 	k.UnmarshalWithConf("Server", &Conf.Server, koanfTag)
 	k.UnmarshalWithConf("OpenId", &Conf.OpenId, koanfTag)
+	k.UnmarshalWithConf("Header", &Conf.Header, koanfTag)
 	k.UnmarshalWithConf("Caps", &Conf.Caps, koanfTag)
 	k.UnmarshalWithConf("Security", &Conf.Security, koanfTag)
 	k.UnmarshalWithConf("Client", &Conf.Client, koanfTag)
@@ -219,10 +232,10 @@ func Load(configFile string) Configuration {
 	if Conf.Server.BasicAuthEnabled() && Conf.Server.Tls == "disable" {
 		log.Fatalf("basicauth=local and tls=disable are mutually exclusive")
 	}
-        
+
 	if Conf.Server.NtlmEnabled() && Conf.Server.KerberosEnabled() {
 		log.Fatalf("ntlm and kerberos authentication are not stackable")
-        }
+	}
 
 	if !Conf.Caps.TokenAuth && Conf.Server.OpenIDEnabled() {
 		log.Fatalf("openid is configured but tokenauth disabled")
@@ -232,13 +245,16 @@ func Load(configFile string) Configuration {
 		log.Fatalf("kerberos is configured but no keytab was specified")
 	}
 
+	if Conf.Server.HeaderEnabled() && Conf.Header.UserHeader == "" {
+		log.Fatalf("header authentication is configured but no user header was specified")
+	}
+
 	// prepend '//' if required for URL parsing
 	if !strings.Contains(Conf.Server.GatewayAddress, "//") {
 		Conf.Server.GatewayAddress = "//" + Conf.Server.GatewayAddress
 	}
 
 	return Conf
-
 }
 
 func (s *ServerConfig) OpenIDEnabled() bool {
@@ -255,6 +271,10 @@ func (s *ServerConfig) BasicAuthEnabled() bool {
 
 func (s *ServerConfig) NtlmEnabled() bool {
 	return s.matchAuth("ntlm")
+}
+
+func (s *ServerConfig) HeaderEnabled() bool {
+	return s.matchAuth("header")
 }
 
 func (s *ServerConfig) matchAuth(needle string) bool {
